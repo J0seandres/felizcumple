@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Para mi amor</title>
+    
+    <!-- Cargando Tailwind CSS para los estilos base -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fuentes elegantes para un toque romántico -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#12080d',      /* Fondo principal súper oscuro con tono rojizo */
+                        darkCard: '#1f1118',    /* Fondo secundario para tarjetas */
+                        pinkAccent: '#ec4899',  /* Rosa brillante */
+                        pinkSoft: '#fdf2f8',    /* Rosa muy claro para textos */
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Animación del latido del corazón */
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        .heartbeat {
+            animation: heartbeat 1.5s infinite ease-in-out;
+        }
+
+        /* Ocultar barra de scroll en el carrusel pero mantener funcionalidad */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Animación de entrada suave */
+        .fade-in {
+            animation: fadeIn 1s ease-in forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Animación de error al responder mal (sacudida) */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        .shake-animation {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        .carta-completa {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.8s ease, opacity 0.5s ease;
+        }
+        .carta-completa.abierta {
+            max-height: 1200px;
+            opacity: 1;
+        }
+        .corazones-flotantes {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .corazon-flotante {
+            position: absolute;
+            bottom: -2rem;
+            color: #ec4899;
+            font-size: 1.25rem;
+            opacity: 0;
+            animation: flotarCorazon 2.8s ease-out forwards;
+        }
+        @keyframes flotarCorazon {
+            0% { opacity: 0; transform: translateY(0) scale(0.6) rotate(0deg); }
+            15% { opacity: 0.9; }
+            100% { opacity: 0; transform: translateY(-260px) scale(1.2) rotate(18deg); }
+        }
+
+        /* Estilo para el corazón que se llena */
+        .corazon-vacio path {
+            fill: transparent;
+            stroke: currentColor;
+            stroke-width: 1.5;
+        }
+        .corazon-lleno {
+            clip-path: inset(100% 0 0 0); 
+            transition: clip-path 0.4s ease-out;
+        }
+        .corazon-lleno path {
+            fill: currentColor;
+        }
+
+        /* Estilo base para cuerpo */
+        body {
+            background-color: #12080d;
+            color: #fdf2f8;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body class="antialiased overflow-x-hidden">
+
+    <!-- 1. Pantalla inicial con corazón -->
+    <div id="cover-screen" class="fixed inset-0 z-50 bg-darkBg flex flex-col items-center justify-center transition-opacity duration-1000 ease-in-out cursor-pointer">
+        <p class="text-pinkAccent font-serif text-xl mb-8 tracking-widest uppercase opacity-70 text-center px-4" id="texto-toque">Cada toque abre un pedacito de mi corazón...</p>
+        
+        <div class="heartbeat text-pinkAccent mb-4 relative w-[120px] h-[120px]" id="corazon-toque">
+            <!-- Corazón vacío (borde) -->
+            <svg viewBox="0 0 32 29.6" class="corazon-vacio absolute inset-0 w-full h-full" stroke="currentColor">
+                <path d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.4,9.5,11.9,16,21.2 c6.1-9.3,16-12.1,16-21.2C32,3.8,28.2,0,23.6,0z"></path>
+            </svg>
+            
+            <!-- Corazón lleno (frente, se irá revelando) -->
+            <svg viewBox="0 0 32 29.6" class="corazon-lleno absolute inset-0 w-full h-full" id="corazon-progreso">
+                <path d="M23.6,0c-3.4,0-6.3,2.7-7.6,5.6C14.7,2.7,11.8,0,8.4,0C3.8,0,0,3.8,0,8.4c0,9.4,9.5,11.9,16,21.2 c6.1-9.3,16-12.1,16-21.2C32,3.8,28.2,0,23.6,0z"></path>
+            </svg>
+        </div>
+        
+        <p class="text-pinkSoft opacity-50 text-sm mt-8">Un regalo especial para ti</p>
+    </div>
+
+    <!-- Contenedor Principal de la App (Mobile Viewport) -->
+    <main id="main-content" class="max-w-md mx-auto min-h-screen bg-darkBg pb-24 hidden opacity-0 transition-opacity duration-1000">
+        
+        <!-- 2. Sección principal (Foto, nombres, fecha) -->
+        <header class="pt-10 px-6 text-center fade-in">
+            <div class="relative w-full h-80 rounded-3xl overflow-hidden shadow-2xl mb-8 shadow-pinkAccent/20">
+                <!-- Imagen de pareja (Puedes cambiar la URL) -->
+                <img src="imagenes/foto1.jpg" alt="Nuestra Foto" class="object-cover w-full h-full opacity-90">
+                <div class="absolute inset-0 bg-gradient-to-t from-darkBg via-transparent to-transparent"></div>
+            </div>
+            
+            <p class="text-xs tracking-[0.3em] text-pinkAccent uppercase mb-2">Para el amor de mi vida</p>
+            <h1 class="font-serif text-5xl font-bold mb-4 text-white">Rosy</h1>
+            <p class="text-sm font-light text-pinkSoft/70">De Joss <span class="text-pinkAccent mx-1">❤</span> 13 de Octubre del 2026</p>
+        </header>
+
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-pinkAccent/30 to-transparent my-10"></div>
+
+        <!-- 3. Nuestra Canción -->
+        <section class="px-6 fade-in" style="animation-delay: 0.2s;">
+            <h2 class="text-center font-serif text-xl mb-6 text-pink-200 tracking-wide">NUESTRA CANCIÓN</h2>
+            <div class="rounded-2xl overflow-hidden shadow-lg shadow-black/50">
+                <!-- Puedes cambiar el ID de la canción de Spotify aquí -->
+                <iframe style="border-radius:12px" src="https://open.spotify.com/embed/track/0MHSnVk2CrGP8hIkxpxwMJ?utm_source=generator&theme=0" width="100%" height="152" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            </div>
+        </section>
+
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-pinkAccent/30 to-transparent my-10"></div>
+
+        <!-- 4. Galería de fotos (Carrusel) -->
+        <section class="fade-in" style="animation-delay: 0.4s;">
+            <div class="text-center mb-6">
+                <h2 class="text-xs tracking-[0.2em] text-pinkAccent uppercase mb-1">Galería</h2>
+                <h3 class="font-serif text-2xl text-pink-200">Momentos inolvidables</h3>
+            </div>
+            
+            <div class="flex overflow-x-auto snap-x snap-mandatory gap-4 px-6 no-scrollbar pb-6">
+                <!-- Fotos locales -->
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto2.jpg" class="w-full h-full object-cover" alt="Momento 1">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto3.jpg" class="w-full h-full object-cover" alt="Momento 2">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto4.jpg" class="w-full h-full object-cover" alt="Momento 3">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto5.jpg" class="w-full h-full object-cover" alt="Momento 4">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto6.jpg" class="w-full h-full object-cover" alt="Momento 5">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto7.jpg" class="w-full h-full object-cover" alt="Momento 6">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto8.jpg" class="w-full h-full object-cover" alt="Momento 7">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto9.jpg" class="w-full h-full object-cover" alt="Momento 8">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto10.jpg" class="w-full h-full object-cover" alt="Momento 9">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/foto11.jpg" class="w-full h-full object-cover" alt="Momento 10">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/IMG_0636.jpg" class="w-full h-full object-cover" alt="Momento 11">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/IMG_1594.jpg" class="w-full h-full object-cover" alt="Momento 12">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/IMG_1602.jpg" class="w-full h-full object-cover" alt="Momento 13">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/IMG_1895.jpg" class="w-full h-full object-cover" alt="Momento 14">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/IMG_2769.jpg" class="w-full h-full object-cover" alt="Momento 15">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/IMG_2771.jpg" class="w-full h-full object-cover" alt="Momento 16">
+                </div>
+                <div class="snap-center shrink-0 w-64 h-80 rounded-2xl overflow-hidden shadow-lg bg-darkCard">
+                    <img src="imagenes/IMG_2894.jpg" class="w-full h-full object-cover" alt="Momento 17">
+                </div>
+               
+            </div>
+            <p class="text-center text-xs text-pinkSoft/40 mt-2">Desliza para ver más →</p>
+        </section>
+
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-pinkAccent/30 to-transparent my-10"></div>
+
+        <!-- 5. Carta Romántica -->
+        <section class="px-6 fade-in" style="animation-delay: 0.6s;">
+            <div class="bg-darkCard p-8 rounded-3xl relative overflow-hidden">
+                <div class="absolute top-4 left-4 text-pinkAccent/20">
+                    <svg width="40" height="40" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+                </div>
+                <h2 class="font-serif text-2xl text-center mb-6 text-pinkAccent">Mi amor,</h2>
+                <p class="text-sm leading-relaxed text-pinkSoft/70 font-light text-center mb-6">Tengo algo que quiero decirte desde el corazón...</p>
+                <button id="boton-carta" type="button" onclick="toggleCarta()" aria-expanded="false" class="relative z-10 bg-pinkAccent hover:bg-pink-600 text-white font-medium py-3 px-6 rounded-full shadow-[0_0_18px_rgba(236,72,153,0.35)] transition-all transform active:scale-95 mx-auto flex items-center justify-center gap-2">
+                    <span id="texto-boton-carta">Leer carta</span>
+                    <span aria-hidden="true">♥</span>
+                </button>
+                <div id="carta-completa" class="carta-completa">
+                <p class="text-sm leading-relaxed text-pinkSoft/80 font-light mt-6 space-y-4">
+                    <span>Si estás leyendo esto, es porque quería recordarte lo mucho que significas para mí. Cada día a tu lado es una aventura hermosa que no quiero que termine jamás. hay miradas que duran un segundo y se quedan para siempre, pero la tuya logró detener el tiempo desde el primer instante.</span>
+                     <br><br>
+                    <span>no se trata solo de tu rostro, de tu sonrisa que ilumina mis días o de la elegancia de tus pasos es esa magia inexplicable que llevas en el alma,.</span>
+                     <br><br>
+                     <span>me fascina cada día descubrir la profundidad de tus pensamientos tu bondad y la manera tan única que tienes de ver el mundo eres un refugio en medio del caos, una casualidad que se convirtió en mi mayor certeza podría recorrer el universo eterno y no encontraría a nadie que se compare a tu hermosa esencia</span>
+                    <br><br>
+                    <span>Gracias por existir, por ser la luz de mis días y por enseñarme que el amor verdadero se construye con pequeños detalles, risas cómplices y una conexión que trasciende las palabras, te quiero inmensamente y CADA DIA A TU LADO ES UN REGALO que atesoro en lo más profundo de mi corazón...</span>
+                    <br><br>
+                    <span>Me has enseñado el verdadero significado de la palabra felicidad, y cada momento juntos se queda grabado en mi corazón. Gracias por tu paciencia, tus sonrisas y por ser mi lugar seguro.</span>
+                    <br><br>
+                    <span>Te amo más de lo que las palabras pueden expresar.</span>
+                </p>
+                <p class="text-right mt-6 font-serif text-pinkAccent italic">Siempre tuyo,<br>Joss</p>
+                </div>
+                <div id="corazones-flotantes" class="corazones-flotantes" aria-hidden="true"></div>
+            </div>
+        </section>
+
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-pinkAccent/30 to-transparent my-10"></div>
+
+        <!-- 6. Línea del Tiempo -->
+        <section class="px-6 fade-in" style="animation-delay: 0.8s;">
+            <div class="text-center mb-10">
+                <h2 class="text-xs tracking-[0.2em] text-pinkAccent uppercase mb-1">Nuestra Historia</h2>
+                <h3 class="font-serif text-2xl text-pink-200">Línea del tiempo</h3>
+            </div>
+
+            <div class="relative pl-6 border-l-2 border-pinkAccent/30 space-y-10">
+                
+                <!-- Hito 1 -->
+                <div class="relative">
+                    <div class="absolute -left-[31px] top-1 bg-darkBg border-2 border-pinkAccent w-4 h-4 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)]"></div>
+                    <p class="text-xs text-pinkAccent font-semibold mb-1">22 de Marzo, 2025</p>
+                    <h4 class="font-serif text-lg mb-2 text-white">El momento uno</h4>
+                    <p class="text-sm text-pinkSoft/70 font-light">Aun recuerdo como fue esa emocion de verte de espaldas y decir "MI NOVIECITAAA ESTA AQUIIII AHHHH!!!!!!".</p>
+                </div>
+
+                <!-- Hito 2 -->
+                <div class="relative">
+                    <div class="absolute -left-[31px] top-1 bg-darkBg border-2 border-pinkAccent w-4 h-4 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)]"></div>
+                    <p class="text-xs text-pinkAccent font-semibold mb-1">19 de Septiembre, 2025</p>
+                    <h4 class="font-serif text-lg mb-2 text-white">Nuestra primer funcion </h4>
+                    <p class="text-sm text-pinkSoft/70 font-light">Nose pero desde ese dia escucho a Zoe diferente eso de besarnos y escucharlo Uffff CUANDO LO ESCUCHO TE SIENTO CERCA .</p>
+                </div>
+
+                <!-- Hito 3 -->
+                <div class="relative">
+                    <div class="absolute -left-[31px] top-1 bg-darkBg border-2 border-pinkAccent w-4 h-4 rounded-full shadow-[0_0_10px_rgba(236,72,153,0.5)]"></div>
+                    <p class="text-xs text-pinkAccent font-semibold mb-1">Hoy</p>
+                    <h4 class="font-serif text-lg mb-2 text-white">Construyendo un futuro</h4>
+                    <p class="text-sm text-pinkSoft/70 font-light">Y esto es solo el principio de todas las aventuras que nos quedan por vivir juntos.</p>
+                </div>
+
+            </div>
+        </section>
+
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-pinkAccent/30 to-transparent my-10"></div>
+
+        <!-- 7. Reproductor de mensaje de voz -->
+        <section class="px-6 fade-in" style="animation-delay: 1s;">
+            <div class="bg-darkCard rounded-3xl p-6 flex flex-col items-center">
+                <div class="w-12 h-12 bg-pinkAccent rounded-full flex items-center justify-center mb-4 shadow-[0_0_15px_rgba(236,72,153,0.4)] text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                </div>
+                <h3 class="font-serif text-lg mb-1 text-white">Mensaje de voz especial</h3>
+                <p class="text-xs text-pinkSoft/50 mb-6">Escucha esto cuando me extrañes</p>
+                
+                <!-- Reproductor de Audio nativo (Modificado visualmente para encajar) -->
+                <div class="w-full rounded-full overflow-hidden bg-white/5">
+                    <!-- Audio local del mensaje de voz -->
+                    <audio controls class="w-full h-10 rounded-full bg-pinkSoft outline-none">
+                        <source src="amor.mp3" type="audio/mpeg">
+                        <source src="amor.m4a" type="audio/mp4">
+                        Tu navegador no soporta el elemento de audio.
+                    </audio>
+                </div>
+            </div>
+        </section>
+
+        <div class="w-full h-px bg-gradient-to-r from-transparent via-pinkAccent/30 to-transparent my-10"></div>
+
+        <!-- 8. Última sorpresa y cuestionario -->
+        <section class="px-6 text-center pb-12 fade-in" style="animation-delay: 1.2s;">
+            
+            <div id="surprise-intro">
+                <h2 class="font-serif text-3xl mb-4 text-white">Una última sorpresa</h2>
+                <p class="text-sm text-pinkSoft/70 mb-8 font-light">Pensaste que el regalo había terminado... Pero todavía te tengo algo preparado. Tienes que ganártelo.</p>
+                
+                <button onclick="startQuiz()" class="bg-pinkAccent hover:bg-pink-600 text-white font-medium py-4 px-8 rounded-full shadow-[0_0_20px_rgba(236,72,153,0.4)] transition-all transform active:scale-95 w-full max-w-[250px] mx-auto flex items-center justify-center gap-2">
+                    Descubrir sorpresa
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="14" rx="2" ry="2"></rect><path d="M7 8v-2a5 5 0 0 1 10 0v2"></path></svg>
+                </button>
+            </div>
+
+            <!-- Cuestionario (Oculto inicialmente) -->
+            <div id="quiz-container" class="hidden bg-darkCard p-6 rounded-3xl">
+                <p class="text-xs text-pinkAccent uppercase tracking-widest mb-4">Pregunta de seguridad</p>
+                <h3 class="font-serif text-xl mb-6 text-white">¿Quién dijo "ME ENCANTAN TUS OJOS COLOR KK" ?</h3>
+                
+                <div class="space-y-3">
+                    <button onclick="checkAnswer(true, this)" class="w-full bg-darkBg border border-pinkAccent/30 text-pinkSoft py-3 rounded-xl transition-colors">Yo (Joss)</button>
+                    <button onclick="checkAnswer(false, this)" class="w-full bg-darkBg border border-pinkAccent/30 text-pinkSoft py-3 rounded-xl transition-colors">Tú (Rosy)</button>
+                    <button onclick="checkAnswer(false, this)" class="w-full bg-darkBg border border-pinkAccent/30 text-pinkSoft py-3 rounded-xl transition-colors">Los dos a la vez</button>
+                </div>
+            </div>
+
+            <!-- Vale / Recompensa (Oculto inicialmente) -->
+            <div id="voucher-container" class="hidden bg-gradient-to-br from-pink-500 to-pink-700 p-[2px] rounded-3xl mt-4">
+                <div class="bg-darkCard p-8 rounded-[22px] flex flex-col items-center">
+                    <div class="w-16 h-16 bg-pinkAccent/20 text-pinkAccent rounded-full flex items-center justify-center mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 256 256"><path d="M224,112h-8V96a16,16,0,0,0-16-16H56A16,16,0,0,0,40,96v16H32a16,16,0,0,0-16,16v40a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V128A16,16,0,0,0,224,112ZM32,168V128h8v40Zm176,0H56V96H200v72Zm16,0h-8V128h8v40ZM96,168a32,32,0,1,1,32-32A32,32,0,0,1,96,168Zm0-48a16,16,0,1,0,16,16A16,16,0,0,0,96,120Z"></path></svg>
+                    </div>
+                    <p class="text-xs tracking-widest uppercase text-pink-300 mb-2">¡Lo has conseguido!</p>
+                    <h3 class="font-serif text-2xl text-white mb-2 text-center">Vale por una  date con tu novio</h3>
+                    <p class="text-sm font-light text-pinkSoft/80 text-center mb-6">Es un lugar donde te vas a sentir en calma  CLARAMENTE ES SORPRESA EN UNOS DIAS TE ENTERARAS DE TU SORPRESA.</p>
+                    
+                    <div class="border-t border-dashed border-pinkAccent/40 w-full pt-4 text-center">
+                        <p class="text-[10px] text-pinkSoft/40 uppercase tracking-widest"></p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        // Lógica de llenado del corazón
+        let toquesActuales = 0;
+        const toquesParaLlenar = 5; // Cambia este número si quieres que requiera más o menos toques
+        
+        document.getElementById('cover-screen').addEventListener('click', function() {
+            if (toquesActuales < toquesParaLlenar) {
+                toquesActuales++;
+                
+                // Calcula cuánto del corazón falta por rellenar visualmente
+                const porcentajeOculto = 100 - ((toquesActuales / toquesParaLlenar) * 100);
+                document.getElementById('corazon-progreso').style.clipPath = `inset(${porcentajeOculto}% 0 0 0)`;
+                
+                // Si llegamos a la cantidad de toques requerida, abrimos el regalo
+                if (toquesActuales === toquesParaLlenar) {
+                    document.getElementById('texto-toque').innerText = "¡Te amo!";
+                    setTimeout(() => {
+                        revealContent();
+                    }, 600); // Pequeña pausa para que se vea el corazón lleno antes de abrir
+                }
+            }
+        });
+
+        // Función para ocultar la pantalla de inicio y mostrar el contenido
+        function revealContent() {
+            const cover = document.getElementById('cover-screen');
+            const mainContent = document.getElementById('main-content');
+            
+            // Efecto de desvanecimiento
+            cover.classList.add('opacity-0');
+            
+            // Mostrar contenido principal con un pequeño retraso
+            setTimeout(() => {
+                cover.style.display = 'none';
+                mainContent.classList.remove('hidden');
+                
+                // Forzar un reflow para que la animación de entrada funcione
+                void mainContent.offsetWidth;
+                mainContent.classList.remove('opacity-0');
+            }, 800);
+        }
+
+        // Función para mostrar el cuestionario ocultando la introducción
+        function startQuiz() {
+            document.getElementById('surprise-intro').classList.add('hidden');
+            const quizContainer = document.getElementById('quiz-container');
+            quizContainer.classList.remove('hidden');
+            // Animación pop
+            quizContainer.classList.add('fade-in');
+        }
+
+        function toggleCarta() {
+            const carta = document.getElementById('carta-completa');
+            const boton = document.getElementById('boton-carta');
+            const textoBoton = document.getElementById('texto-boton-carta');
+            const estaAbierta = carta.classList.toggle('abierta');
+
+            boton.setAttribute('aria-expanded', estaAbierta);
+            textoBoton.textContent = estaAbierta ? 'Cerrar carta' : 'Leer carta';
+
+            if (estaAbierta) {
+                lanzarCorazones();
+            }
+        }
+
+        function lanzarCorazones() {
+            const contenedor = document.getElementById('corazones-flotantes');
+            contenedor.replaceChildren();
+
+            for (let indice = 0; indice < 14; indice++) {
+                const corazon = document.createElement('span');
+                corazon.className = 'corazon-flotante';
+                corazon.textContent = '♥';
+                corazon.style.left = `${8 + Math.random() * 84}%`;
+                corazon.style.animationDelay = `${Math.random() * 50.9}s`;
+                corazon.style.fontSize = `${0.8 + Math.random() * 0.9}rem`;
+                contenedor.appendChild(corazon);
+            }
+        }
+
+        // Función para validar la respuesta del cuestionario
+        function checkAnswer(isCorrect, buttonElement) 
+        {
+            if (isCorrect) {
+                // Respuesta correcta
+                buttonElement.classList.remove('bg-darkBg', 'border-pinkAccent/30');
+                buttonElement.classList.add('bg-pinkAccent', 'text-white', 'border-pinkAccent');
+                
+                setTimeout(() => {
+                    document.getElementById('quiz-container').classList.add('hidden');
+                    const voucher = document.getElementById('voucher-container');
+                    voucher.classList.remove('hidden');
+                    voucher.classList.add('fade-in');
+                }, 500);
+            } else {
+                // Respuesta incorrecta: Efecto de agitación y color rojo
+                buttonElement.classList.add('bg-red-900', 'border-red-500', 'text-white', 'shake-animation');
+                
+                setTimeout(() => {
+                    buttonElement.classList.remove('bg-red-900', 'border-red-500', 'text-white', 'shake-animation');
+                }, 500);
+            }
+        }
+    
+    </script>
+</body>
+</html>
